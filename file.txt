@@ -447,7 +447,10 @@ app.post("/delete/:id", async (req, res) => {
     }
 });
 
-
+terminal cmd:
+npm init -y
+npm install express mongoose dotenv
+node file.js
 
 
 3.Selinium
