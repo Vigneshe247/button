@@ -1,190 +1,228 @@
 Angular js
 
+.html
+
 <!DOCTYPE html>
-<html ng-app="shopApp">
+<html lang="en" ng-app="shop">
 <head>
-    <meta charset="UTF-8">
-    <title>Online Shopping System</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-animate.min.js"></script>
-    <style>
-        /* Simple ngAnimate effect for product cards */
-        .product-card.ng-enter {
-            transition: opacity 0.5s ease, transform 0.5s ease;
-            opacity: 0;
-            transform: translateY(15px);
-        }
-        .product-card.ng-enter-active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .product-card.ng-leave {
-            transition: opacity 0.3s ease;
-            opacity: 1;
-        }
-        .product-card.ng-leave-active {
-            opacity: 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Online Shopping</title>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-animate.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 24px; }
+h2, h3 { text-align: center; }
+input, select, button { padding: 8px; margin: 5px; }
+.box { border: 1px solid; padding: 12px; margin: 10px 5px; width: min(340px, 90%); }
+button { cursor: pointer; }
+.box.ng-enter { transition: .35s; opacity: 0; transform: translateY(12px); }
+.box.ng-enter-active { opacity: 1; transform: translateY(0); }
+.section { margin: 28px 0; }
+</style>
 </head>
-<body ng-controller="ShopController">
+<body ng-controller="ShopCtrl">
+<h2>Welcome to Our Application</h2>
 
-    <h1>Online Shopping System</h1>
+<div class="section">
+  <h3>Products</h3>
+  <input ng-model="search" placeholder="Search products">
+  <p>You search for: {{search || ''}}</p>
+  <div ng-repeat="p in products | filter:search track by p.id" class="box">
+    <b>{{p.name}}</b> - ₹{{p.amount}}
+    <p>{{p.details}}</p>
+    <button ng-click="add(p,'cart')">Add to Cart</button>
+    <button ng-click="add(p,'liked')">Like</button>
+  </div>
+  <p ng-if="products.length && !(products | filter:search).length">No matching products found.</p>
+</div>
 
-    <!-- ng-model binds the search box to $scope.searchText -->
-    <input type="text" ng-model="searchText" placeholder="Search products">
-    <p>User Search: {{ searchText }}</p>
+<div class="section">
+  <h3>Add Custom Product</h3>
+  <input ng-model="custom.name" placeholder="Name">
+  <input ng-model="custom.amount" type="number" min="1" placeholder="Amount">
+  <input ng-model="custom.details" placeholder="Details">
+  <select ng-model="custom.type">
+    <option value="cart">Add to Cart</option>
+    <option value="liked">Add to Liked</option>
+  </select>
+  <button ng-click="addCustom()">Add</button>
+  <p>{{msg}}</p>
+</div>
 
-    <!-- Built-in filter and orderBy filters -->
-    <select ng-model="sortOption">
-        <option value="name">Name (A-Z)</option>
-        <option value="-price">Price (High to Low)</option>
-        <option value="price">Price (Low to High)</option>
-    </select>
+<div class="section">
+  <h3>My Items</h3>
+  <button ng-click="showItems('cart')">Show Cart Items</button>
+  <button ng-click="showItems('liked')">Show Liked Items</button>
 
-    <button ng-click="loadFromAPI()">List all Items</button>
-    <h2>Products</h2>
-    <p ng-if="products.length === 0">No products available.</p>
-
-    <div class="product-card" ng-repeat="product in products | filter:searchText | orderBy:sortOption">
-        <h3>{{ product.name | capitalize }}</h3>
-        <p>Category: {{ product.category | lowercase }}</p>
-        <p>Price: {{ product.price | currency:'₹' }}</p>
-        <p>{{ product.description | truncate:35 }}</p>
-        <button ng-click="addToCart(product)">Add to Cart</button>
-        <hr>
+  <div ng-if="view === 'cart'">
+    <div ng-repeat="p in items.cart track by p.key" class="box">
+      <b>{{p.name}}</b> - ₹{{p.amount}}
+      <p>{{p.details}}</p>
+      <button ng-click="remove(p,'cart')">Remove</button>
     </div>
+    <p ng-if="items.cart.length === 0">No items in cart.</p>
+    <h3>Total Cart Amount: ₹{{total()}}</h3>
+  </div>
 
-    <h2>Shopping Cart</h2>
-    <p ng-show="cart.length === 0">Your cart is empty.</p>
-
-    <div ng-repeat="item in cart">
-        {{ item.name }} - {{ item.price | currency:'₹' }}
-        <button ng-click="removeFromCart($index)">Remove</button>
+  <div ng-if="view === 'liked'">
+    <div ng-repeat="p in items.liked track by p.key" class="box">
+      <b>{{p.name}}</b> - ₹{{p.amount}}
+      <p>{{p.details}}</p>
+      <button ng-click="remove(p,'liked')">Remove</button>
     </div>
+    <p ng-if="items.liked.length === 0">No items in liked.</p>
+  </div>
+</div>
 
-    <h3>Total: {{ getTotal() | currency:'₹' }}</h3>
-    <button ng-click="checkout()" ng-disabled="cart.length === 0">
-        Checkout
-    </button>
+<div class="section">
+  <h3>Search Item Amount</h3>
+  <form ng-submit="searchAmount()">
+    <input ng-model="amountQuery" placeholder="Enter full product name">
+    <button type="submit">Search</button>
+  </form>
+  <p>You search for: {{amountQuery || ''}}</p>
 
-    <p>{{ message }}</p>
+  <!-- Results appear only after the user submits an exact product name. -->
+  <div ng-if="amountResult">
+    ₹{{amountResult.amount}}
+  </div>
+  <p ng-if="searched && !amountResult">No exact match found in your cart or liked items.</p>
+</div>
 
-    <script>
-        var app = angular.module("shopApp", ["ngAnimate"]);
+<script>
+var app = angular.module('shop', ['ngAnimate']);
 
-        // CUSTOM SERVICE 1: ProductService
-        app.service("ProductService", function() {
-            var products = [
-                {name: "Laptop", category: "ELECTRONICS", price: 50000,
-                 description: "A laptop for study, work and entertainment"},
-                {name: "Headphones", category: "ELECTRONICS", price: 1500,
-                 description: "Comfortable headphones with clear sound"},
-                {name: "Backpack", category: "ACCESSORIES", price: 1200,
-                 description: "A useful backpack for college students"}
-            ];
+app.factory('DataFactory', function($q) {
+  var data = [
+    {id:1, name:'Laptop', amount:78000, details:'16GB RAM'},
+    {id:2, name:'Phone', amount:25000, details:'8GB RAM'},
+    {id:3, name:'Headphones', amount:2000, details:'Wireless'},
+    {id:4, name:'Keyboard', amount:1500, details:'Mechanical'}
+  ];
+  return {load:function() { return $q.when(angular.copy(data)); }};
+});
 
-            this.getProducts = function() {
-                return products;
-            };
-        });
+app.service('ShopService', function() {
+  this.items = {cart:[], liked:[]};
+  this.nextKey = 1;
 
-        // CUSTOM SERVICE 2: CartService
-        app.service("CartService", function() {
-            var cart = [];
+  this.add = function(product, type) {
+    if (!product || !product.name || !product.amount ||
+        Number(product.amount) <= 0 || !this.items[type]) return 'invalid';
 
-            this.getItems = function() {
-                return cart;
-            };
+    var name = product.name.trim().toLowerCase();
+    var exists = this.items[type].some(function(item) {
+      if (product.id !== undefined && product.id !== null)
+        return item.id === product.id;
+      return item.name.trim().toLowerCase() === name;
+    });
+    if (exists) return 'exists';
 
-            this.addItem = function(product) {
-                cart.push(product);
-            };
+    var item = angular.copy(product);
+    item.name = item.name.trim();
+    item.amount = Number(item.amount);
+    item.key = this.nextKey++;
+    this.items[type].push(item);
+    return 'added';
+  };
+});
 
-            this.removeItem = function(index) {
-                cart.splice(index, 1);
-            };
+app.directive('box', function() {
+  return {restrict:'C', link:function(scope, element) {
+    element.css('border-radius', '8px');
+  }};
+});
 
-            this.getTotal = function() {
-                var total = 0;
-                for (var i = 0; i < cart.length; i++) {
-                    total += cart[i].price;
-                }
-                return total;
-            };
-        });
+app.controller('ShopCtrl', function($scope, DataFactory, ShopService) {
+  $scope.items = ShopService.items;
+  $scope.products = [];
+  $scope.view = 'cart';
+  $scope.custom = {type:'cart'};
+  $scope.search = '';
+  $scope.amountQuery = '';
+  $scope.amountResult = null;
+  $scope.searched = false;
+  $scope.msg = '';
 
-        // CUSTOM FILTER 1: capitalize
-        app.filter("capitalize", function() {
-            return function(input) {
-                if (!input) return "";
-                return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase();
-            };
-        });
+  DataFactory.load().then(function(data) { $scope.products = data; });
 
-        // CUSTOM FILTER 2: truncate
-        app.filter("truncate", function() {
-            return function(input, limit) {
-                if (!input) return "";
-                return input.length > limit
-                    ? input.substring(0, limit) + "..."
-                    : input;
-            };
-        });
+  $scope.add = function(product, type) {
+    var result = ShopService.add(product, type);
+    $scope.msg = result === 'added' ? 'Added successfully!' :
+      result === 'exists' ? 'This product is already in this list.' :
+      'Enter a name and a valid amount greater than zero.';
+  };
 
-        app.controller("ShopController", function(
-            $scope, $http, $timeout, ProductService, CartService
-        ) {
+  $scope.addCustom = function() {
+    $scope.add($scope.custom, $scope.custom.type);
+    $scope.custom = {type:'cart'};
+  };
 
-            // Built-in service 2: $timeout (clears feedback after 2 seconds)
-            $scope.products = ProductService.getProducts();
-            $scope.cart = CartService.getItems();
-            $scope.searchText = "";
-            $scope.sortOption = "name";
-            $scope.message = "";
+  $scope.showItems = function(type) { $scope.view = type; };
 
-            $scope.addToCart = function(product) {
-                CartService.addItem(product);
-                $scope.message = product.name + " added to cart!";
-                $timeout(function() {
-                    $scope.message = "";
-                }, 2000);
-            };
+  $scope.remove = function(product, type) {
+    var list = $scope.items[type];
+    var index = list.indexOf(product);
+    if (index !== -1) list.splice(index, 1);
+    if ($scope.amountResult && $scope.amountResult.name.toLowerCase() === product.name.toLowerCase()) {
+      $scope.amountResult = null;
+      $scope.searched = false;
+    }
+  };
 
-            $scope.removeFromCart = function(index) {
-                CartService.removeItem(index);
-            };
+  $scope.total = function() {
+    return $scope.items.cart.reduce(function(sum, p) {
+      return sum + Number(p.amount);
+    }, 0);
+  };
 
-            $scope.getTotal = function() {
-                return CartService.getTotal();
-            };
+  $scope.searchAmount = function() {
+    $scope.searched = true;
+    $scope.amountResult = null;
+    var query = ($scope.amountQuery || '').trim().toLowerCase();
+    if (!query) return;
 
-            // Built-in service 1: $http
-            $scope.loadFromAPI = function() {
-                $http.get("https://dummyjson.com/products?limit=6")
-                    .then(function(response) {
-                        $scope.products = response.data.products.slice(0, 6).map(function(p) {
-                            return {
-                                name: p.title,
-                                category: p.category,
-                                price: p.price,
-                                description: p.description
-                            };
-                        });
-                        $scope.message = "6 products loaded from API!";
-                    })
-                    .catch(function() {
-                        $scope.message = "Could not load API products.";
-                    });
-            };
-
-            $scope.checkout = function() {
-                $scope.message = "Checkout completed for demo!";
-            };
-        });
-    </script>
+    var found = $scope.items.cart.concat($scope.items.liked).find(function(p) {
+      return p.name.trim().toLowerCase() === query;
+    });
+    if (found) $scope.amountResult = found;
+  };
+});
+</script>
 </body>
 </html>
+
+
+product.json
+
+[
+  {
+    "id": 1,
+    "name": "Laptop",
+    "amount": 78000,
+    "details": "16GB RAM"
+  },
+  {
+    "id": 2,
+    "name": "Phone",
+    "amount": 25000,
+    "details": "8GB RAM"
+  },
+  {
+    "id": 3,
+    "name": "Headphones",
+    "amount": 2000,
+    "details": "Wireless"
+  },
+  {
+    "id": 4,
+    "name": "Keyboard",
+    "amount": 1500,
+    "details": "Mechanical"
+  }
+]
+
 
 
 
@@ -274,6 +312,142 @@ pip install flask pymongo dnspython
 notepad app.py
 py app.py
 ```
+
+Node.Js code:
+
+const express = require("express");
+const mongoose = require("mongoose");
+
+const app = express();
+app.use(express.urlencoded({ extended: true }));
+
+const MONGO_URI = "mongodb+srv://vignesh:asd123@cluster0.lzvyw7v.mongodb.net/studentdb?retryWrites=true&w=majority";
+
+mongoose.connect(MONGO_URI)
+    .then(() => app.listen(3000, () => console.log("Server running at http://localhost:3000")))
+    .catch(err => { console.log("MongoDB Error:", err.message); process.exit(1); });
+
+const Student = mongoose.model("Student", new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    course: { type: String, required: true },
+    age: { type: Number, required: true }
+}));
+
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const style = `
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background: #f4f6f9; color: #333; }
+        .box { max-width: 900px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        input { padding: 8px 12px; margin: 4px; border: 1px solid #ccc; border-radius: 4px; }
+        button, .btn { padding: 8px 14px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; color: #fff; display: inline-block; }
+        .btn-primary { background: #2563eb; }
+        .btn-edit { background: #0284c7; }
+        .btn-del { background: #dc2626; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+        th { background: #f1f5f9; font-weight: 600; }
+        tr:nth-child(even) { background: #f9fafb; }
+        tr:hover { background: #f3f4f6; }
+        .actions { display: flex; gap: 8px; align-items: center; }
+        form.inline { display: inline; margin: 0; }
+    </style>
+`;
+
+// READ (Home Page with Student Table)
+app.get("/", async (req, res) => {
+    try {
+        const students = await Student.find().sort({ _id: -1 });
+        const rows = students.map(s => `
+            <tr>
+                <td>${esc(s.name)}</td><td>${esc(s.email)}</td><td>${esc(s.course)}</td><td>${s.age}</td>
+                <td>
+                    <div class="actions">
+                        <a href="/edit/${s._id}" class="btn btn-edit">Edit</a>
+                        <form action="/delete/${s._id}" method="POST" class="inline" onsubmit="return confirm('Delete student?')">
+                            <button type="submit" class="btn btn-del">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>`).join("");
+
+        res.send(`<!DOCTYPE html><html><head><title>Student CRUD</title>${style}</head><body>
+        <div class="box">
+            <h2>Student Management System</h2>
+            <form action="/add" method="POST">
+                <input name="name" placeholder="Student Name" required>
+                <input name="email" type="email" placeholder="Email" required>
+                <input name="course" placeholder="Course" required>
+                <input name="age" type="number" min="1" placeholder="Age" required>
+                <button type="submit" class="btn btn-primary">Add Student</button>
+            </form>
+            <h3>Student Records</h3>
+            <table border="1">
+                <thead><tr><th>Name</th><th>Email</th><th>Course</th><th>Age</th><th>Actions</th></tr></thead>
+                <tbody>${rows || '<tr><td colspan="5" style="text-align:center;padding:15px;">No records found</td></tr>'}</tbody>
+            </table>
+        </div></body></html>`);
+    } catch (err) {
+        res.status(500).send("Unable to load students: " + esc(err.message));
+    }
+});
+
+// CREATE
+app.post("/add", async (req, res) => {
+    try {
+        const { name, email, course, age } = req.body;
+        await Student.create({ name, email, course, age: Number(age) });
+        res.redirect("/");
+    } catch (err) {
+        res.status(400).send("Error adding student: " + esc(err.message));
+    }
+});
+
+// UPDATE FORM
+app.get("/edit/:id", async (req, res) => {
+    try {
+        const s = await Student.findById(req.params.id);
+        if (!s) return res.status(404).send("Student not found");
+        res.send(`<!DOCTYPE html><html><head><title>Edit Student</title>${style}</head><body>
+        <div class="box" style="max-width:400px;">
+            <h2>Edit Student</h2>
+            <form action="/update/${s._id}" method="POST">
+                <p><label>Name</label><br><input name="name" value="${esc(s.name)}" style="width:100%;box-sizing:border-box;" required></p>
+                <p><label>Email</label><br><input name="email" type="email" value="${esc(s.email)}" style="width:100%;box-sizing:border-box;" required></p>
+                <p><label>Course</label><br><input name="course" value="${esc(s.course)}" style="width:100%;box-sizing:border-box;" required></p>
+                <p><label>Age</label><br><input name="age" type="number" min="1" value="${s.age}" style="width:100%;box-sizing:border-box;" required></p>
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a href="/" class="btn" style="background:#64748b;">Cancel</a>
+            </form>
+        </div></body></html>`);
+    } catch (err) {
+        res.status(500).send("Unable to edit student");
+    }
+});
+
+// UPDATE
+app.post("/update/:id", async (req, res) => {
+    try {
+        const { name, email, course, age } = req.body;
+        await Student.findByIdAndUpdate(req.params.id, { name, email, course, age: Number(age) });
+        res.redirect("/");
+    } catch (err) {
+        res.status(400).send("Error updating student");
+    }
+});
+
+// DELETE
+app.post("/delete/:id", async (req, res) => {
+    try {
+        await Student.findByIdAndDelete(req.params.id);
+        res.redirect("/");
+    } catch (err) {
+        res.status(500).send("Error deleting student");
+    }
+});
+
+
 
 
 3.Selinium
