@@ -336,25 +336,6 @@ const Student = mongoose.model("Student", new mongoose.Schema({
 
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-const style = `
-    <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background: #f4f6f9; color: #333; }
-        .box { max-width: 900px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        input { padding: 8px 12px; margin: 4px; border: 1px solid #ccc; border-radius: 4px; }
-        button, .btn { padding: 8px 14px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; color: #fff; display: inline-block; }
-        .btn-primary { background: #2563eb; }
-        .btn-edit { background: #0284c7; }
-        .btn-del { background: #dc2626; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
-        th { background: #f1f5f9; font-weight: 600; }
-        tr:nth-child(even) { background: #f9fafb; }
-        tr:hover { background: #f3f4f6; }
-        .actions { display: flex; gap: 8px; align-items: center; }
-        form.inline { display: inline; margin: 0; }
-    </style>
-`;
-
 // READ (Home Page with Student Table)
 app.get("/", async (req, res) => {
     try {
@@ -372,22 +353,21 @@ app.get("/", async (req, res) => {
                 </td>
             </tr>`).join("");
 
-        res.send(`<!DOCTYPE html><html><head><title>Student CRUD</title>${style}</head><body>
-        <div class="box">
-            <h2>Student Management System</h2>
-            <form action="/add" method="POST">
-                <input name="name" placeholder="Student Name" required>
-                <input name="email" type="email" placeholder="Email" required>
-                <input name="course" placeholder="Course" required>
-                <input name="age" type="number" min="1" placeholder="Age" required>
-                <button type="submit" class="btn btn-primary">Add Student</button>
-            </form>
-            <h3>Student Records</h3>
-            <table border="1">
-                <thead><tr><th>Name</th><th>Email</th><th>Course</th><th>Age</th><th>Actions</th></tr></thead>
-                <tbody>${rows || '<tr><td colspan="5" style="text-align:center;padding:15px;">No records found</td></tr>'}</tbody>
-            </table>
-        </div></body></html>`);
+        res.send(`<!DOCTYPE html><html><head><title>Student CRUD</title></head><body>
+        <h2>Student Management System</h2>
+        <form action="/add" method="POST">
+            <input name="name" placeholder="Student Name" required>
+            <input name="email" type="email" placeholder="Email" required>
+            <input name="course" placeholder="Course" required>
+            <input name="age" type="number" min="1" placeholder="Age" required>
+            <button type="submit">Add Student</button>
+        </form>
+        <h3>Student Records</h3>
+        <table border="1">
+            <thead><tr><th>Name</th><th>Email</th><th>Course</th><th>Age</th><th>Actions</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="5">No records found</td></tr>'}</tbody>
+        </table>
+        </body></html>`);
     } catch (err) {
         res.status(500).send("Unable to load students: " + esc(err.message));
     }
@@ -409,18 +389,17 @@ app.get("/edit/:id", async (req, res) => {
     try {
         const s = await Student.findById(req.params.id);
         if (!s) return res.status(404).send("Student not found");
-        res.send(`<!DOCTYPE html><html><head><title>Edit Student</title>${style}</head><body>
-        <div class="box" style="max-width:400px;">
-            <h2>Edit Student</h2>
-            <form action="/update/${s._id}" method="POST">
-                <p><label>Name</label><br><input name="name" value="${esc(s.name)}" style="width:100%;box-sizing:border-box;" required></p>
-                <p><label>Email</label><br><input name="email" type="email" value="${esc(s.email)}" style="width:100%;box-sizing:border-box;" required></p>
-                <p><label>Course</label><br><input name="course" value="${esc(s.course)}" style="width:100%;box-sizing:border-box;" required></p>
-                <p><label>Age</label><br><input name="age" type="number" min="1" value="${s.age}" style="width:100%;box-sizing:border-box;" required></p>
-                <button type="submit" class="btn btn-primary">Update</button>
-                <a href="/" class="btn" style="background:#64748b;">Cancel</a>
-            </form>
-        </div></body></html>`);
+        res.send(`<!DOCTYPE html><html><head><title>Edit Student</title></head><body>
+        <h2>Edit Student</h2>
+        <form action="/update/${s._id}" method="POST">
+            <p><label>Name</label><br><input name="name" value="${esc(s.name)}" required></p>
+            <p><label>Email</label><br><input name="email" type="email" value="${esc(s.email)}" required></p>
+            <p><label>Course</label><br><input name="course" value="${esc(s.course)}" required></p>
+            <p><label>Age</label><br><input name="age" type="number" min="1" value="${s.age}" required></p>
+            <button type="submit">Update</button>
+            <a href="/">Cancel</a>
+        </form>
+        </body></html>`);
     } catch (err) {
         res.status(500).send("Unable to edit student");
     }
@@ -446,6 +425,7 @@ app.post("/delete/:id", async (req, res) => {
         res.status(500).send("Error deleting student");
     }
 });
+
 
 terminal cmd:
 npm init -y
